@@ -72,7 +72,8 @@ app.get('/api/events', async (req, res) => {
       startDate,       // 開始日（YYYY-MM-DD）
       endDate,         // 終了日（YYYY-MM-DD）
       limit = 50,      // 取得件数
-      lastKey          // ページネーション用
+      lastKey,         // ページネーション用
+      includeDemo = false  // デモデータを含めるかどうか（デフォルトはfalse）
     } = req.query;
 
     // 現在日時を日本時間で取得
@@ -118,10 +119,16 @@ app.get('/api/events', async (req, res) => {
         sourceUrl: item.sourceUrl,
         imageUrl: item.imageUrl || null,
         coordinates: item.coordinates || null,
+        isDemo: item.isDemo || false,
         createdAt: item.createdAt,
         updatedAt: item.updatedAt
       });
     });
+
+    // デモデータのフィルタリング
+    if (includeDemo !== 'true') {
+      events = events.filter(event => !event.isDemo);
+    }
 
     // カテゴリーフィルタリング
     if (categories) {
@@ -217,6 +224,7 @@ app.get('/api/events/:id', async (req, res) => {
       sourceUrl: result.Item.sourceUrl,
       imageUrl: result.Item.imageUrl || null,
       coordinates: result.Item.coordinates || null,
+      isDemo: result.Item.isDemo || false,
       createdAt: result.Item.createdAt,
       updatedAt: result.Item.updatedAt
     });
