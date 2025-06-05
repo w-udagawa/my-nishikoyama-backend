@@ -13,6 +13,7 @@ class Event {
     this.sourceUrl = data.sourceUrl;
     this.imageUrl = data.imageUrl || null;
     this.coordinates = data.coordinates || null; // {lat, lng}
+    this.isDemo = data.isDemo || false; // デモ/ダミーデータフラグ
     this.createdAt = data.createdAt || new Date().toISOString();
     this.updatedAt = data.updatedAt || new Date().toISOString();
   }
@@ -89,6 +90,7 @@ class Event {
           lng: { N: this.coordinates.lng.toString() }
         }
       } : { NULL: true },
+      isDemo: { BOOL: this.isDemo },
       createdAt: { S: this.createdAt },
       updatedAt: { S: this.updatedAt }
     };
@@ -112,6 +114,7 @@ class Event {
         lat: parseFloat(item.coordinates.M.lat.N),
         lng: parseFloat(item.coordinates.M.lng.N)
       } : null,
+      isDemo: item.isDemo?.BOOL || false,
       createdAt: item.createdAt.S,
       updatedAt: item.updatedAt.S
     });
