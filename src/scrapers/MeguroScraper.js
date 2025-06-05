@@ -201,9 +201,8 @@ class MeguroScraper {
     const searchText = `${event.title} ${event.location} ${event.description}`.toLowerCase();
     const keywords = ['西小山', 'にしこやま', '原町', '小山', '碑文谷', '目黒本町'];
     
-    // すべてのイベントを取得する（開発中は地域限定なし）
-    // return keywords.some(keyword => searchText.includes(keyword));
-    return true; // 一時的にすべてのイベントを取得
+    // 西小山関連のイベントのみ取得
+    return keywords.some(keyword => searchText.includes(keyword));
   }
 
   parseDate(dateText) {
