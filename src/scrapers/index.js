@@ -2,6 +2,7 @@ const MeguroScraper = require('./MeguroScraper');
 const ShinagawaScraper = require('./ShinagawaScraper');
 const AWS = require('aws-sdk');
 const dayjs = require('dayjs');
+require('dotenv').config();
 
 // AWS DynamoDB設定
 AWS.config.update({
@@ -10,7 +11,7 @@ AWS.config.update({
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
 });
 
-const dynamoDB = new AWS.DynamoDB();
+const docClient = new AWS.DynamoDB.DocumentClient();
 const tableName = process.env.DYNAMODB_TABLE_NAME;
 
 class EventCollector {
@@ -159,63 +160,38 @@ class EventCollector {
   async saveEvents(events) {
     console.log('DynamoDBへの保存開始...');
     
-    // バッチ書き込み（25件ずつ）
-    const batchSize = 25;
-    for (let i = 0; i < events.length; i += batchSize) {
-      const batch = events.slice(i, i + batchSize);
-      
-      // バッチ内のID重複チェック
-      const batchIds = new Set();
-      const uniqueBatch = [];
-      
-      for (const event of batch) {
-        if (!batchIds.has(event.id)) {
-          batchIds.add(event.id);
-          uniqueBatch.push(event);
-        } else {
-          console.log(`バッチ内重複スキップ: ${event.id} - ${event.title}`);
-        }
-      }
-      
-      const putRequests = uniqueBatch.map(event => ({
-        PutRequest: {
-          Item: event.toDynamoDBItem()
-        }
-      }));
-      
-      const params = {
-        RequestItems: {
-          [tableName]: putRequests
-        }
-      };
-      
+    // 個別に保存
+    let savedCount = 0;
+    for (const event of events) {
       try {
-        await dynamoDB.batchWriteItem(params).promise();
-        console.log(`${i + uniqueBatch.length}/${events.length}件を保存`);
-      } catch (error) {
-        console.error('DynamoDB保存エラー:', error.message);
-        // 個別に保存を試みる
-        for (const event of uniqueBatch) {
-          try {
-            await this.saveSingleEvent(event);
-          } catch (err) {
-            console.error('個別保存エラー:', event.title, err.message);
+        await docClient.put({
+          TableName: tableName,
+          Item: {
+            id: event.id,
+            title: event.title,
+            date: event.date,
+            time: event.time,
+            location: event.location,
+            address: event.address || '',
+            description: event.description,
+            category: event.category || [],
+            source: event.source,
+            sourceUrl: event.sourceUrl,
+            imageUrl: event.imageUrl || null,
+            coordinates: event.coordinates || null,
+            createdAt: event.createdAt,
+            updatedAt: event.updatedAt
           }
-        }
+        }).promise();
+        savedCount++;
+      } catch (error) {
+        console.error('保存エラー:', event.title, error.message);
       }
     }
     
-    console.log('DynamoDB保存完了');
+    console.log(`DynamoDB保存完了: ${savedCount}/${events.length}件`);
   }
 
-  async saveSingleEvent(event) {
-    const params = {
-      TableName: tableName,
-      Item: event.toDynamoDBItem()
-    };
-    
-    await dynamoDB.putItem(params).promise();
-  }
 
   // 手動実行用
   async runOnce() {
