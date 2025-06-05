@@ -23,6 +23,7 @@ app.use((req, res, next) => {
     'https://liff.line.me',
     'http://localhost:5173', // 開発環境
     'http://localhost:3001',
+    'https://my-nishikoyama-frontend.vercel.app', // 本番フロントエンド
     process.env.FRONTEND_URL
   ].filter(Boolean);
   
