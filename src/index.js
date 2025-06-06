@@ -69,7 +69,7 @@ app.get('/api/events', async (req, res) => {
     const { 
       categories,      // カテゴリーフィルター（カンマ区切り）
       interests,       // ユーザーの興味（カンマ区切り）
-      area,           // エリアフィルター（nishikoyama, musashikoyama, all）
+      area,           // エリアフィルター（nishikoyama, musashikoyama, shinagawa_other, all）
       startDate,       // 開始日（YYYY-MM-DD）
       endDate,         // 終了日（YYYY-MM-DD）
       limit = 50,      // 取得件数
@@ -277,7 +277,8 @@ app.get('/api/areas', (req, res) => {
     data: [
       { id: 'all', name: '品川区', description: '品川区全体のイベント' },
       { id: 'nishikoyama', name: '西小山', description: '西小山エリアのイベント' },
-      { id: 'musashikoyama', name: '武蔵小山', description: '武蔵小山エリアのイベント' }
+      { id: 'musashikoyama', name: '武蔵小山', description: '武蔵小山エリアのイベント' },
+      { id: 'shinagawa_other', name: '品川区その他', description: '品川駅・大井町駅など他エリアのイベント' }
     ]
   });
 });
