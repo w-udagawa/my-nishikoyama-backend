@@ -34,20 +34,30 @@ class ShinagawaKankoScraper {
 
         const $ = cheerio.load(response.data);
         
-        // イベント一覧を取得
-        const eventElements = $('.event-list__item, .post-list__item').toArray();
+        // イベント一覧を取得（修正版）
+        const eventElements = $('.p-postList__item').toArray();
         console.log(`${eventElements.length}個のイベントを発見`);
 
         for (const element of eventElements) {
           try {
             const $elem = $(element);
             
-            // タイトルとリンクを取得
-            const titleElem = $elem.find('h3 a, .post-list__title a').first();
-            const title = titleElem.text().trim();
-            const link = titleElem.attr('href');
+            // リンクを取得
+            const linkElem = $elem.find('.p-postList__link').first();
+            const link = linkElem.attr('href');
             
-            if (!title || !link) continue;
+            // タイトルを取得（画像のaltテキストまたはテキスト要素から）
+            let title = $elem.find('.p-postList__title').text().trim() ||
+                       $elem.find('img').attr('alt') ||
+                       $elem.find('h3').text().trim() ||
+                       $elem.find('.c-postCard__title').text().trim();
+            
+            if (!title || !link) {
+              console.log('タイトルまたはリンクが見つかりません');
+              continue;
+            }
+            
+            console.log(`イベント発見: ${title}`);
             
             // 詳細ページを取得
             const eventDetail = await this.scrapeEventDetail(link);
@@ -55,18 +65,25 @@ class ShinagawaKankoScraper {
             if (eventDetail) {
               events.push({
                 ...eventDetail,
-                title: title,
+                title: eventDetail.title || title,
                 sourceUrl: link.startsWith('http') ? link : `${this.baseUrl}${link}`
               });
             }
+            
+            // レート制限対策
+            await this.delay(500);
+            
           } catch (error) {
             console.error(`イベント解析エラー:`, error.message);
           }
         }
         
         // 次のページがあるか確認
-        hasNextPage = $('.pagination .next, .nav-links .next').length > 0;
+        hasNextPage = $('.pagination .next, .nav-links .next, .page-numbers.next').length > 0;
         currentPage++;
+        
+        // レート制限対策
+        await this.delay(1000);
       }
 
       console.log(`品川観光協会から${events.length}件のイベントを取得`);
@@ -81,6 +98,8 @@ class ShinagawaKankoScraper {
   async scrapeEventDetail(url) {
     try {
       const fullUrl = url.startsWith('http') ? url : `${this.baseUrl}${url}`;
+      console.log(`詳細ページ取得: ${fullUrl}`);
+      
       const response = await axios.get(fullUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -89,101 +108,72 @@ class ShinagawaKankoScraper {
 
       const $ = cheerio.load(response.data);
       
-      // イベント情報を抽出
+      // タイトルを取得
+      const title = $('h1').first().text().trim() || 
+                   $('.entry-title').text().trim() ||
+                   $('.article-title').text().trim();
+      
+      // イベント情報テーブルまたはリストから情報を抽出
       let date = '';
       let time = '詳細をご確認ください';
       let location = '';
       let address = '';
       let description = '';
       
-      // 日付を探す（複数のパターンに対応）
-      const datePatterns = [
-        $('.event-date'),
-        $('.post-meta__date'),
-        $('dt:contains("開催日")').next('dd'),
-        $('th:contains("開催日")').next('td'),
-        $('.event-info__item:contains("開催日")')
-      ];
-      
-      for (const pattern of datePatterns) {
-        if (pattern.length > 0) {
-          const dateText = pattern.first().text().trim();
+      // テーブル形式の情報を探す
+      $('table tr, dl').each((i, elem) => {
+        const $elem = $(elem);
+        const text = $elem.text();
+        
+        // 日付
+        if (text.includes('開催日') || text.includes('日時') || text.includes('日程')) {
+          const dateText = $elem.find('td, dd').text().trim() || 
+                          $elem.text().replace(/開催日|日時|日程/, '').trim();
           date = this.parseDate(dateText);
-          if (date) break;
         }
-      }
-      
-      // 時間を探す
-      const timePatterns = [
-        $('.event-time'),
-        $('dt:contains("時間")').next('dd'),
-        $('th:contains("時間")').next('td'),
-        $('.event-info__item:contains("時間")')
-      ];
-      
-      for (const pattern of timePatterns) {
-        if (pattern.length > 0) {
-          time = pattern.first().text().trim() || time;
-          break;
+        
+        // 時間
+        if (text.includes('時間') || text.includes('開催時間')) {
+          time = $elem.find('td, dd').text().trim() || 
+                $elem.text().replace(/時間|開催時間/, '').trim();
         }
-      }
-      
-      // 場所を探す
-      const locationPatterns = [
-        $('.event-location'),
-        $('.event-venue'),
-        $('dt:contains("場所")').next('dd'),
-        $('dt:contains("会場")').next('dd'),
-        $('th:contains("場所")').next('td'),
-        $('th:contains("会場")').next('td')
-      ];
-      
-      for (const pattern of locationPatterns) {
-        if (pattern.length > 0) {
-          location = pattern.first().text().trim();
-          if (location) break;
+        
+        // 場所
+        if (text.includes('場所') || text.includes('会場') || text.includes('開催場所')) {
+          location = $elem.find('td, dd').text().trim() || 
+                    $elem.text().replace(/場所|会場|開催場所/, '').trim();
         }
-      }
-      
-      // 住所を探す
-      const addressPatterns = [
-        $('.event-address'),
-        $('dt:contains("住所")').next('dd'),
-        $('th:contains("住所")').next('td')
-      ];
-      
-      for (const pattern of addressPatterns) {
-        if (pattern.length > 0) {
-          address = pattern.first().text().trim();
-          if (address) break;
+        
+        // 住所
+        if (text.includes('住所') || text.includes('所在地')) {
+          address = $elem.find('td, dd').text().trim() || 
+                   $elem.text().replace(/住所|所在地/, '').trim();
         }
-      }
+      });
       
-      // 説明文を取得
-      const descPatterns = [
-        $('.event-description'),
-        $('.post-content'),
-        $('.entry-content'),
-        $('.event-detail')
-      ];
+      // 本文から説明を取得
+      description = $('.entry-content, .article-content, .post-content, .content')
+        .first()
+        .text()
+        .trim()
+        .replace(/\s+/g, ' ')
+        .substring(0, 500);
       
-      for (const pattern of descPatterns) {
-        if (pattern.length > 0) {
-          description = pattern.first().text().trim()
-            .replace(/\s+/g, ' ')
-            .substring(0, 500);
-          if (description) break;
-        }
+      // 日付が見つからない場合は本文から探す
+      if (!date) {
+        const bodyText = $('body').text();
+        date = this.parseDate(bodyText);
       }
       
       // 最低限の情報がない場合はスキップ
-      if (!date || date === 'Invalid Date') {
+      if (!date || date === 'Invalid Date' || !title) {
+        console.log(`必要な情報が不足: タイトル="${title}", 日付="${date}"`);
         return null;
       }
       
       // イベントオブジェクトを作成
       const event = new Event({
-        title: '',
+        title: title,
         date: date,
         time: time,
         location: location || '品川区内',
@@ -191,7 +181,7 @@ class ShinagawaKankoScraper {
         description: description || '',
         source: 'shinagawa_kanko',
         sourceUrl: fullUrl,
-        category: this.detectCategories(location + ' ' + description)
+        category: this.detectCategories(title + ' ' + location + ' ' + description)
       });
       
       return event;
@@ -215,6 +205,12 @@ class ShinagawaKankoScraper {
       'M月D日',
       'MM月DD日'
     ];
+    
+    // 日付を含む可能性のある部分を抽出
+    const dateMatch = dateText.match(/(\d{4}年)?\d{1,2}月\d{1,2}日|\d{4}\/\d{1,2}\/\d{1,2}|\d{4}-\d{1,2}-\d{1,2}/);
+    if (dateMatch) {
+      dateText = dateMatch[0];
+    }
     
     // 年が含まれない場合は現在の年を追加
     if (!dateText.includes('年') && !dateText.includes('/') && !dateText.includes('-')) {
@@ -266,6 +262,10 @@ class ShinagawaKankoScraper {
     }
     
     return categories.length > 0 ? categories : ['general'];
+  }
+  
+  delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }
 
