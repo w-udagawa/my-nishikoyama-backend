@@ -171,6 +171,9 @@ class ShinagawaKankoScraper {
         return null;
       }
       
+      // エリアを判定
+      const area = this.detectArea(title, location, address, description);
+      
       // イベントオブジェクトを作成
       const event = new Event({
         title: title,
@@ -181,7 +184,8 @@ class ShinagawaKankoScraper {
         description: description || '',
         source: 'shinagawa_kanko',
         sourceUrl: fullUrl,
-        category: this.detectCategories(title + ' ' + location + ' ' + description)
+        category: this.detectCategories(title + ' ' + location + ' ' + description),
+        area: area
       });
       
       return event;
@@ -227,6 +231,53 @@ class ShinagawaKankoScraper {
     }
     
     return '';
+  }
+
+  detectArea(title, location, address, description) {
+    const allText = `${title} ${location} ${address} ${description}`.toLowerCase();
+    
+    // 武蔵小山のキーワード
+    const musashikoyamaKeywords = [
+      '武蔵小山',
+      'むさしこやま',
+      'ムサシコヤマ',
+      'パルム',
+      'palm',
+      '小山3丁目',
+      '小山三丁目'
+    ];
+    
+    // 西小山のキーワード
+    const nishikoyamaKeywords = [
+      '西小山',
+      'にしこやま',
+      'ニシコヤマ',
+      '原町',
+      '小山6丁目',
+      '小山六丁目',
+      '小山7丁目',
+      '小山七丁目'
+    ];
+    
+    // 武蔵小山の判定
+    const isMusashikoyama = musashikoyamaKeywords.some(keyword => 
+      allText.includes(keyword)
+    );
+    
+    // 西小山の判定
+    const isNishikoyama = nishikoyamaKeywords.some(keyword => 
+      allText.includes(keyword)
+    );
+    
+    // 両方に該当する場合は西小山を優先（デフォルト）
+    if (isMusashikoyama && !isNishikoyama) {
+      return 'musashikoyama';
+    } else if (isNishikoyama && !isMusashikoyama) {
+      return 'nishikoyama';
+    } else {
+      // どちらにも該当しない、または両方に該当する場合は西小山
+      return 'nishikoyama';
+    }
   }
 
   detectCategories(text) {
