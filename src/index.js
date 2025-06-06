@@ -69,6 +69,7 @@ app.get('/api/events', async (req, res) => {
     const { 
       categories,      // カテゴリーフィルター（カンマ区切り）
       interests,       // ユーザーの興味（カンマ区切り）
+      area,           // エリアフィルター（nishikoyama, musashikoyama, all）
       startDate,       // 開始日（YYYY-MM-DD）
       endDate,         // 終了日（YYYY-MM-DD）
       limit = 50,      // 取得件数
@@ -120,6 +121,7 @@ app.get('/api/events', async (req, res) => {
         imageUrl: item.imageUrl || null,
         coordinates: item.coordinates || null,
         isDemo: item.isDemo || false,
+        area: item.area || 'nishikoyama',
         createdAt: item.createdAt,
         updatedAt: item.updatedAt
       });
@@ -128,6 +130,11 @@ app.get('/api/events', async (req, res) => {
     // デモデータのフィルタリング
     if (includeDemo !== 'true') {
       events = events.filter(event => !event.isDemo);
+    }
+
+    // エリアフィルタリング
+    if (area && area !== 'all') {
+      events = events.filter(event => event.area === area);
     }
 
     // カテゴリーフィルタリング
@@ -225,6 +232,7 @@ app.get('/api/events/:id', async (req, res) => {
       imageUrl: result.Item.imageUrl || null,
       coordinates: result.Item.coordinates || null,
       isDemo: result.Item.isDemo || false,
+      area: result.Item.area || 'nishikoyama',
       createdAt: result.Item.createdAt,
       updatedAt: result.Item.updatedAt
     });
@@ -253,7 +261,23 @@ app.get('/api/categories', (req, res) => {
       { id: 'food', name: 'グルメ・食べ歩き', icon: '🍽️' },
       { id: 'sports', name: 'スポーツ・健康', icon: '🏃' },
       { id: 'culture', name: '文化・アート', icon: '🎨' },
-      { id: 'senior', name: 'シニア向け', icon: '👴' }
+      { id: 'senior', name: 'シニア向け', icon: '👴' },
+      { id: 'sale', name: 'セール・特売', icon: '🏷️' },
+      { id: 'workshop', name: 'ワークショップ', icon: '🛠️' },
+      { id: 'festival', name: 'お祭り', icon: '🎪' },
+      { id: 'local', name: '地域イベント', icon: '📍' }
+    ]
+  });
+});
+
+// エリア一覧取得エンドポイント
+app.get('/api/areas', (req, res) => {
+  res.json({
+    success: true,
+    data: [
+      { id: 'all', name: '全エリア', description: '西小山・武蔵小山の全イベント' },
+      { id: 'nishikoyama', name: '西小山', description: '西小山エリアのイベント' },
+      { id: 'musashikoyama', name: '武蔵小山', description: '武蔵小山エリアのイベント' }
     ]
   });
 });
