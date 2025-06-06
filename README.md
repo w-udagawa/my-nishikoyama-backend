@@ -5,7 +5,7 @@
 ## 機能
 
 - イベント情報の取得（一覧・詳細）
-- エリア別フィルタリング（西小山・武蔵小山・品川区全体）
+- エリア別フィルタリング（西小山・武蔵小山・品川区その他・品川区全体）
 - カテゴリー別フィルタリング
 - 日付範囲指定
 - ユーザーの興味に基づくスコアリング
@@ -24,7 +24,7 @@
 - `GET /health` - ヘルスチェック
 - `GET /api/events` - イベント一覧取得
   - クエリパラメータ:
-    - `area` (optional): エリアフィルター（`nishikoyama`, `musashikoyama`, `all`）
+    - `area` (optional): エリアフィルター（`nishikoyama`, `musashikoyama`, `shinagawa_other`, `all`）
     - `includeDemo` (optional): `true`を指定するとダミーイベントも含めて取得（デフォルト: `false`）
     - `categories` (optional): カテゴリーフィルター（カンマ区切り）
     - `startDate` (optional): 開始日（YYYY-MM-DD）
@@ -40,6 +40,7 @@
 - `all` - 品川区（全エリア）
 - `nishikoyama` - 西小山
 - `musashikoyama` - 武蔵小山
+- `shinagawa_other` - 品川区その他（品川駅・大井町駅など）
 
 ## スクレイピング情報源
 
@@ -47,8 +48,8 @@
 
 ### 正常動作中 ✅
 - **品川観光協会**: https://shinagawa-kanko.or.jp/event/
-  - 西小山・武蔵小山の両エリアのイベントを取得
-  - エリアは内容から自動判定
+  - 品川区全体のイベントを取得
+  - エリアは内容から自動判定（西小山・武蔵小山・その他）
 - **武蔵小山パルム商店街**: https://musashikoyama-palm.jp/news/event
   - 武蔵小山エリアのイベントを取得
 
@@ -85,6 +86,9 @@ node src/scrapers/index.js
 # 武蔵小山パルムのみテスト
 node test-musashikoyama.js
 
+# 品川観光協会のみテスト
+node test-shinagawa-kanko.js
+
 # データベース内容確認
 node check-db-events.js
 
@@ -104,7 +108,10 @@ node update-event-areas.js
 
 ## エリア対応
 
-- `area`フィールドで西小山（`nishikoyama`）と武蔵小山（`musashikoyama`）を区別
+- `area`フィールドで以下のエリアを区別
+  - `nishikoyama` - 西小山
+  - `musashikoyama` - 武蔵小山
+  - `shinagawa_other` - 品川区その他（品川駅・大井町駅など）
 - APIでエリア別にイベントを取得可能
 - スクレイパーが自動的にエリアを判定
 
