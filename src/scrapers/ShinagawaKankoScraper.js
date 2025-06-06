@@ -171,8 +171,9 @@ class ShinagawaKankoScraper {
         return null;
       }
       
-      // エリアを判定
+      // エリアを判定（改善版）
       const area = this.detectArea(title, location, address, description);
+      console.log(`エリア判定: ${title} → ${area}`);
       
       // イベントオブジェクトを作成
       const event = new Event({
@@ -244,7 +245,8 @@ class ShinagawaKankoScraper {
       'パルム',
       'palm',
       '小山3丁目',
-      '小山三丁目'
+      '小山三丁目',
+      '荏原4'  // info&cafe SQUAREの住所
     ];
     
     // 西小山のキーワード
@@ -259,24 +261,65 @@ class ShinagawaKankoScraper {
       '小山七丁目'
     ];
     
+    // 品川区その他のキーワード（より具体的に）
+    const shinagawaOtherKeywords = [
+      '品川駅',
+      '大井町',
+      '大崎',
+      '五反田',
+      '目黒',
+      '天王洲',
+      '北品川',
+      '南品川',
+      '東品川',
+      '西品川',
+      '大井',
+      '西五反田',
+      '東五反田',
+      '上大崎',
+      '下目黒',
+      '戸越',
+      '中延',
+      '旗の台',
+      '荏原町',
+      '雅叙園',
+      'toc',
+      'ビル'
+    ];
+    
+    // 明示的なエリア判定（より厳密に）
+    
+    // まず品川区その他のキーワードをチェック（優先度高）
+    const isShinagawaOther = shinagawaOtherKeywords.some(keyword => 
+      allText.includes(keyword)
+    );
+    
     // 武蔵小山の判定
     const isMusashikoyama = musashikoyamaKeywords.some(keyword => 
       allText.includes(keyword)
     );
     
-    // 西小山の判定
+    // 西小山の判定  
     const isNishikoyama = nishikoyamaKeywords.some(keyword => 
       allText.includes(keyword)
     );
     
-    // 両方に該当する場合は西小山を優先（デフォルト）
-    if (isMusashikoyama && !isNishikoyama) {
+    // エリア判定の改善（優先順位を考慮）
+    if (isShinagawaOther && !isMusashikoyama && !isNishikoyama) {
+      return 'shinagawa_other';
+    } else if (isMusashikoyama && !isNishikoyama) {
       return 'musashikoyama';
     } else if (isNishikoyama && !isMusashikoyama) {
       return 'nishikoyama';
+    } else if (isMusashikoyama && isNishikoyama) {
+      // 両方のキーワードが含まれる場合は、より多く含まれる方を選択
+      const musashiCount = musashikoyamaKeywords.filter(k => allText.includes(k)).length;
+      const nishiCount = nishikoyamaKeywords.filter(k => allText.includes(k)).length;
+      return musashiCount > nishiCount ? 'musashikoyama' : 'nishikoyama';
     } else {
-      // どちらにも該当しない、または両方に該当する場合は西小山
-      return 'nishikoyama';
+      // どのキーワードにも該当しない場合
+      // 品川区のイベントなので、デフォルトは「その他」とする
+      return 'shinagawa_other';
     }
   }
 

@@ -35,20 +35,33 @@ async function checkEvents() {
     const areaCount = {
       nishikoyama: 0,
       musashikoyama: 0,
+      shinagawa_other: 0,
       undefined: 0
     };
     
     realEvents.forEach(event => {
       const area = event.area || 'undefined';
-      areaCount[area] = (areaCount[area] || 0) + 1;
+      if (area in areaCount) {
+        areaCount[area]++;
+      } else {
+        areaCount[area] = 1;
+      }
     });
     
     console.log(`=== エリア別実データ ===`);
     console.log(`西小山: ${areaCount.nishikoyama}件`);
     console.log(`武蔵小山: ${areaCount.musashikoyama}件`);
+    console.log(`品川区その他: ${areaCount.shinagawa_other}件`);
     if (areaCount.undefined > 0) {
       console.log(`エリア未設定: ${areaCount.undefined}件`);
     }
+    
+    // その他のエリアがあれば表示
+    Object.keys(areaCount).forEach(area => {
+      if (!['nishikoyama', 'musashikoyama', 'shinagawa_other', 'undefined'].includes(area)) {
+        console.log(`${area}: ${areaCount[area]}件`);
+      }
+    });
     
     // 実データの詳細を表示
     console.log(`\n=== 実データ詳細 ===`);
@@ -76,6 +89,18 @@ async function checkEvents() {
     console.log(`\n=== 日付分析 ===`);
     console.log(`未来のイベント: ${futureEvents.length}件`);
     console.log(`過去のイベント: ${pastEvents.length}件`);
+    
+    // ソース別の集計も追加
+    const sourceCount = {};
+    realEvents.forEach(event => {
+      const source = event.source || 'unknown';
+      sourceCount[source] = (sourceCount[source] || 0) + 1;
+    });
+    
+    console.log(`\n=== ソース別実データ ===`);
+    Object.entries(sourceCount).forEach(([source, count]) => {
+      console.log(`${source}: ${count}件`);
+    });
     
   } catch (error) {
     console.error('エラー:', error);
