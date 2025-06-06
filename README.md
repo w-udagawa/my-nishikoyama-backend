@@ -8,6 +8,7 @@
 - カテゴリー別フィルタリング
 - 日付範囲指定
 - ユーザーの興味に基づくスコアリング
+- ダミーイベントの自動フィルタリング
 
 ## 技術スタック
 
@@ -19,6 +20,12 @@
 
 - `GET /health` - ヘルスチェック
 - `GET /api/events` - イベント一覧取得
+  - クエリパラメータ:
+    - `includeDemo` (optional): `true`を指定するとダミーイベントも含めて取得（デフォルト: `false`）
+    - `categories` (optional): カテゴリーフィルター（カンマ区切り）
+    - `startDate` (optional): 開始日（YYYY-MM-DD）
+    - `endDate` (optional): 終了日（YYYY-MM-DD）
+    - `limit` (optional): 取得件数（デフォルト: 50）
 - `GET /api/events/:id` - イベント詳細取得
 - `GET /api/categories` - カテゴリー一覧取得
 - `GET /api/stats` - 統計情報取得
@@ -49,7 +56,17 @@ npm run dev
 
 # スクレイピング実行
 npm run scrape
+
+# ダミーイベントのフラグ更新
+node update-demo-events.js
 ```
+
+## ダミーイベントの管理
+
+本番環境では、デフォルトでダミーイベントは表示されません。
+
+- イベントデータの`isDemo`フィールドが`true`のものがダミーイベントとして扱われます
+- `update-demo-events.js`スクリプトを実行すると、タイトルや説明にダミーキーワードが含まれるイベントに自動的に`isDemo`フラグが設定されます
 
 ## デプロイ
 
