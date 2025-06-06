@@ -275,7 +275,7 @@ app.get('/api/areas', (req, res) => {
   res.json({
     success: true,
     data: [
-      { id: 'all', name: '全エリア', description: '西小山・武蔵小山の全イベント' },
+      { id: 'all', name: '品川区', description: '品川区全体のイベント' },
       { id: 'nishikoyama', name: '西小山', description: '西小山エリアのイベント' },
       { id: 'musashikoyama', name: '武蔵小山', description: '武蔵小山エリアのイベント' }
     ]
