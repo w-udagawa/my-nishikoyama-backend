@@ -1,5 +1,4 @@
-const MeguroScraper = require('./MeguroScraper');
-const ShinagawaScraper = require('./ShinagawaScraper');
+// 正常に動作するスクレイパーのみをインポート
 const ShinagawaKankoScraper = require('./ShinagawaKankoScraper');
 const MusashikoyamaPalmScraper = require('./MusashikoyamaPalmScraper');
 const AWS = require('aws-sdk');
@@ -19,10 +18,8 @@ const tableName = process.env.DYNAMODB_TABLE_NAME;
 class EventCollector {
   constructor() {
     this.scrapers = [
-      new MeguroScraper(),
-      new ShinagawaScraper(),
-      new ShinagawaKankoScraper(),
-      new MusashikoyamaPalmScraper() // 武蔵小山パルムを追加
+      new ShinagawaKankoScraper(),    // 品川観光協会
+      new MusashikoyamaPalmScraper()   // 武蔵小山パルム
     ];
   }
 
