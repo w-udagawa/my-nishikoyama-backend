@@ -41,8 +41,8 @@ class EventCollector {
     
     console.log(`合計${allEvents.length}件のイベントを収集`);
     
-    // イベントらしくないものを除外（緩和版）
-    const realEvents = this.filterNonEvents(allEvents);
+    // フィルタリングを無効化（すべてのイベントを通す）
+    const realEvents = allEvents;
     console.log(`フィルタリング後: ${realEvents.length}件`);
     
     // 重複を除去
@@ -63,63 +63,10 @@ class EventCollector {
     return futureEvents;
   }
 
+  // フィルタリング機能（現在は無効化）
   filterNonEvents(events) {
-    // 除外するキーワード（厳選版）
-    const excludeKeywords = [
-      // 言語関連
-      'English', 'Kurdî', '中文', '한국어', 'Tiếng Việt', 
-      'Español', 'Português', 'Français', 'Deutsch',
-      
-      // ナビゲーション関連
-      'トップページ', 'ホーム', 'サイトマップ', 'お問い合わせ',
-      'アクセス', 'プライバシーポリシー', '利用規約', 'ヘルプ',
-      
-      // その他
-      'FAQ', 'RSS', 'PDF', '一覧', 'もっと見る'
-    ];
-
-    // タイトルの最小文字数（緩和）
-    const MIN_TITLE_LENGTH = 5;
-
-    return events.filter(event => {
-      // タイトルが短すぎる場合は除外
-      if (event.title.length < MIN_TITLE_LENGTH) {
-        return false;
-      }
-
-      // 除外キーワードが含まれている場合
-      const titleLower = event.title.toLowerCase();
-      for (const keyword of excludeKeywords) {
-        if (titleLower.includes(keyword.toLowerCase())) {
-          return false;
-        }
-      }
-
-      // URL末尾が index.html や / で終わる場合は除外
-      if (event.sourceUrl.match(/(index\.html|\/$|#$)/)) {
-        return false;
-      }
-
-      // 品川観光協会と武蔵小山パルムのイベントは基本的に信頼できるので、フィルタリングを緩和
-      if (event.source === 'shinagawa_kanko' || event.source === 'musashikoyama_palm') {
-        return true;
-      }
-
-      // その他のソースはイベントキーワードチェック
-      const eventKeywords = [
-        '開催', '募集', '講座', '教室', 'まつり', '祭り', 'フェス',
-        'ワークショップ', 'セミナー', '体験', '展示', 'コンサート',
-        '大会', '競技', '発表', '公演', '上映', '相談会', '説明会',
-        '会議', 'シンポジウム', 'フォーラム', '交流', '研修', 'マルシェ',
-        '宴会', 'イベント', '縁日', 'ツアー', '見学', 'セール', 'フェア'
-      ];
-
-      const hasEventKeyword = eventKeywords.some(keyword => 
-        event.title.includes(keyword) || event.description.includes(keyword)
-      );
-
-      return hasEventKeyword;
-    });
+    // フィルタリングを無効化 - すべてのイベントを通す
+    return events;
   }
 
   removeDuplicates(events) {
@@ -183,6 +130,7 @@ class EventCollector {
           }
         }).promise();
         savedCount++;
+        console.log(`保存: ${event.title} (${event.date})`);
       } catch (error) {
         console.error('保存エラー:', event.title, error.message);
       }
