@@ -1,5 +1,6 @@
 const MeguroScraper = require('./MeguroScraper');
 const ShinagawaScraper = require('./ShinagawaScraper');
+const ShinagawaKankoScraper = require('./ShinagawaKankoScraper');
 const AWS = require('aws-sdk');
 const dayjs = require('dayjs');
 require('dotenv').config();
@@ -18,7 +19,8 @@ class EventCollector {
   constructor() {
     this.scrapers = [
       new MeguroScraper(),
-      new ShinagawaScraper()
+      new ShinagawaScraper(),
+      new ShinagawaKankoScraper() // 品川観光協会を追加
     ];
   }
 
@@ -40,7 +42,7 @@ class EventCollector {
     
     console.log(`合計${allEvents.length}件のイベントを収集`);
     
-    // イベントらしくないものを除外
+    // イベントらしくないものを除外（緩和版）
     const realEvents = this.filterNonEvents(allEvents);
     console.log(`フィルタリング後: ${realEvents.length}件`);
     
@@ -63,7 +65,7 @@ class EventCollector {
   }
 
   filterNonEvents(events) {
-    // 除外するキーワード
+    // 除外するキーワード（厳選版）
     const excludeKeywords = [
       // 言語関連
       'English', 'Kurdî', '中文', '한국어', 'Tiếng Việt', 
@@ -73,22 +75,12 @@ class EventCollector {
       'トップページ', 'ホーム', 'サイトマップ', 'お問い合わせ',
       'アクセス', 'プライバシーポリシー', '利用規約', 'ヘルプ',
       
-      // カテゴリー名のみ
-      '地域でのスポーツ教室', '手当・医療費助成', '子育て・児童家庭相談',
-      '家庭相談・ひとり親家庭支援', '妊娠・出産', '保育園・幼稚園',
-      '児童センター', 'すまいるスクール', '学校', '青少年育成',
-      
-      // 一般的なメニュー項目
-      'イベント情報', '施設案内', '区政情報', '文化・スポーツ',
-      '健康・福祉', '子ども・教育', '環境・まちづくり',
-      
       // その他
-      'FAQ', 'RSS', 'PDF', '一覧', 'もっと見る',
-      '地域センターの詳細についてはこちら'
+      'FAQ', 'RSS', 'PDF', '一覧', 'もっと見る'
     ];
 
-    // タイトルの最小文字数
-    const MIN_TITLE_LENGTH = 8;
+    // タイトルの最小文字数（緩和）
+    const MIN_TITLE_LENGTH = 5;
 
     return events.filter(event => {
       // タイトルが短すぎる場合は除外
@@ -109,12 +101,18 @@ class EventCollector {
         return false;
       }
 
-      // イベントらしいキーワードが含まれているか確認
+      // 品川観光協会のイベントは基本的に信頼できるので、sourceがshinagawa_kankoならフィルタリングを緩和
+      if (event.source === 'shinagawa_kanko') {
+        return true;
+      }
+
+      // その他のソースはイベントキーワードチェック
       const eventKeywords = [
         '開催', '募集', '講座', '教室', 'まつり', '祭り', 'フェス',
         'ワークショップ', 'セミナー', '体験', '展示', 'コンサート',
         '大会', '競技', '発表', '公演', '上映', '相談会', '説明会',
-        '会議', 'シンポジウム', 'フォーラム', '交流', '研修'
+        '会議', 'シンポジウム', 'フォーラム', '交流', '研修', 'マルシェ',
+        '宴会', 'イベント', '縁日', 'ツアー', '見学'
       ];
 
       const hasEventKeyword = eventKeywords.some(keyword => 
@@ -179,6 +177,7 @@ class EventCollector {
             sourceUrl: event.sourceUrl,
             imageUrl: event.imageUrl || null,
             coordinates: event.coordinates || null,
+            isDemo: false, // 実データとして保存
             createdAt: event.createdAt,
             updatedAt: event.updatedAt
           }
