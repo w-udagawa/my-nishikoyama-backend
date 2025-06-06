@@ -269,14 +269,15 @@ class ShinagawaKankoScraper {
       allText.includes(keyword)
     );
     
-    // 両方に該当する場合は西小山を優先（デフォルト）
+    // エリア判定の改善
     if (isMusashikoyama && !isNishikoyama) {
       return 'musashikoyama';
     } else if (isNishikoyama && !isMusashikoyama) {
       return 'nishikoyama';
     } else {
-      // どちらにも該当しない、または両方に該当する場合は西小山
-      return 'nishikoyama';
+      // どちらにも該当しない場合は「その他」として扱う
+      // これにより品川駅、大井町駅などのイベントも表示される
+      return 'shinagawa_other';
     }
   }
 
