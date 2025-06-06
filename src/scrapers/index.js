@@ -1,6 +1,7 @@
 const MeguroScraper = require('./MeguroScraper');
 const ShinagawaScraper = require('./ShinagawaScraper');
 const ShinagawaKankoScraper = require('./ShinagawaKankoScraper');
+const MusashikoyamaPalmScraper = require('./MusashikoyamaPalmScraper');
 const AWS = require('aws-sdk');
 const dayjs = require('dayjs');
 require('dotenv').config();
@@ -20,7 +21,8 @@ class EventCollector {
     this.scrapers = [
       new MeguroScraper(),
       new ShinagawaScraper(),
-      new ShinagawaKankoScraper() // 品川観光協会を追加
+      new ShinagawaKankoScraper(),
+      new MusashikoyamaPalmScraper() // 武蔵小山パルムを追加
     ];
   }
 
@@ -101,8 +103,8 @@ class EventCollector {
         return false;
       }
 
-      // 品川観光協会のイベントは基本的に信頼できるので、sourceがshinagawa_kankoならフィルタリングを緩和
-      if (event.source === 'shinagawa_kanko') {
+      // 品川観光協会と武蔵小山パルムのイベントは基本的に信頼できるので、フィルタリングを緩和
+      if (event.source === 'shinagawa_kanko' || event.source === 'musashikoyama_palm') {
         return true;
       }
 
@@ -112,7 +114,7 @@ class EventCollector {
         'ワークショップ', 'セミナー', '体験', '展示', 'コンサート',
         '大会', '競技', '発表', '公演', '上映', '相談会', '説明会',
         '会議', 'シンポジウム', 'フォーラム', '交流', '研修', 'マルシェ',
-        '宴会', 'イベント', '縁日', 'ツアー', '見学'
+        '宴会', 'イベント', '縁日', 'ツアー', '見学', 'セール', 'フェア'
       ];
 
       const hasEventKeyword = eventKeywords.some(keyword => 
@@ -178,6 +180,7 @@ class EventCollector {
             imageUrl: event.imageUrl || null,
             coordinates: event.coordinates || null,
             isDemo: false, // 実データとして保存
+            area: event.area || 'nishikoyama', // エリア情報を保存
             createdAt: event.createdAt,
             updatedAt: event.updatedAt
           }
