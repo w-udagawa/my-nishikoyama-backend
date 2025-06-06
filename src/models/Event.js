@@ -14,6 +14,7 @@ class Event {
     this.imageUrl = data.imageUrl || null;
     this.coordinates = data.coordinates || null; // {lat, lng}
     this.isDemo = data.isDemo || false; // デモ/ダミーデータフラグ
+    this.area = data.area || 'nishikoyama'; // エリア情報 ('nishikoyama', 'musashikoyama')
     this.createdAt = data.createdAt || new Date().toISOString();
     this.updatedAt = data.updatedAt || new Date().toISOString();
   }
@@ -91,6 +92,7 @@ class Event {
         }
       } : { NULL: true },
       isDemo: { BOOL: this.isDemo },
+      area: { S: this.area },
       createdAt: { S: this.createdAt },
       updatedAt: { S: this.updatedAt }
     };
@@ -115,6 +117,7 @@ class Event {
         lng: parseFloat(item.coordinates.M.lng.N)
       } : null,
       isDemo: item.isDemo?.BOOL || false,
+      area: item.area?.S || 'nishikoyama',
       createdAt: item.createdAt.S,
       updatedAt: item.updatedAt.S
     });
