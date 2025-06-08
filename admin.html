@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>マイ西小山 イベント管理</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #00B900;
+            padding-bottom: 10px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        .category-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        .category-group label {
+            display: inline-flex;
+            align-items: center;
+            font-weight: normal;
+            margin-bottom: 0;
+        }
+        .category-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 5px;
+        }
+        button {
+            background-color: #00B900;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #008a00;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        #eventList {
+            margin-top: 40px;
+        }
+        .event-item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #00B900;
+        }
+        .event-item h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .event-meta {
+            color: #666;
+            font-size: 14px;
+        }
+        .delete-btn {
+            background-color: #dc3545;
+            padding: 5px 15px;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .delete-btn:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏘️ マイ西小山 イベント管理</h1>
+        
+        <div id="message"></div>
+        
+        <form id="eventForm">
+            <div class="form-group">
+                <label for="title">イベント名 *</label>
+                <input type="text" id="title" name="title" required 
+                       placeholder="例：西小山夏祭り">
+            </div>
+            
+            <div class="form-group">
+                <label for="date">開催日 *</label>
+                <input type="date" id="date" name="date" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="time">開催時間 *</label>
+                <input type="text" id="time" name="time" required 
+                       placeholder="例：10:00-16:00">
+            </div>
+            
+            <div class="form-group">
+                <label for="location">場所 *</label>
+                <input type="text" id="location" name="location" required 
+                       placeholder="例：西小山駅前広場">
+            </div>
+            
+            <div class="form-group">
+                <label for="address">住所</label>
+                <input type="text" id="address" name="address" 
+                       placeholder="例：東京都目黒区原町1-1">
+            </div>
+            
+            <div class="form-group">
+                <label for="description">詳細説明 *</label>
+                <textarea id="description" name="description" required 
+                          placeholder="イベントの詳細な説明を入力してください"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>カテゴリー（複数選択可）</label>
+                <div class="category-group">
+                    <label>
+                        <input type="checkbox" name="category" value="family">
+                        👨‍👩‍👧‍👦 親子向け
+                    </label>
+                    <label>
+                        <input type="checkbox" name="category" value="free">
+                        🆓 無料
+                    </label>
+                    <label>
+                        <input type="checkbox" name="category" value="food">
+                        🍽️ グルメ
+                    </label>
+                    <label>
+                        <input type="checkbox" name="category" value="sports">
+                        🏃 スポーツ
+                    </label>
+                    <label>
+                        <input type="checkbox" name="category" value="culture">
+                        🎨 文化
+                    </label>
+                    <label>
+                        <input type="checkbox" name="category" value="senior">
+                        👴 シニア
+                    </label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="sourceUrl">詳細URL</label>
+                <input type="url" id="sourceUrl" name="sourceUrl" 
+                       placeholder="https://example.com/event-details">
+            </div>
+            
+            <button type="submit">イベントを登録</button>
+        </form>
+        
+        <div id="eventList">
+            <h2>登録済みイベント</h2>
+            <div id="events"></div>
+        </div>
+    </div>
+
+    <script>
+        // フォーム送信処理
+        document.getElementById('eventForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const categories = formData.getAll('category');
+            
+            const event = {
+                title: formData.get('title'),
+                date: formData.get('date'),
+                time: formData.get('time'),
+                location: formData.get('location'),
+                address: formData.get('address') || '',
+                description: formData.get('description'),
+                category: categories,
+                sourceUrl: formData.get('sourceUrl') || '',
+                source: 'manual_entry'
+            };
+            
+            try {
+                const response = await fetch('/api/admin/events', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(event)
+                });
+                
+                if (response.ok) {
+                    showMessage('イベントを登録しました！', 'success');
+                    e.target.reset();
+                    loadEvents();
+                } else {
+                    throw new Error('登録に失敗しました');
+                }
+            } catch (error) {
+                showMessage('エラー: ' + error.message, 'error');
+            }
+        });
+        
+        // メッセージ表示
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.className = type;
+            messageDiv.textContent = text;
+            setTimeout(() => {
+                messageDiv.textContent = '';
+                messageDiv.className = '';
+            }, 5000);
+        }
+        
+        // イベント一覧を読み込む
+        async function loadEvents() {
+            try {
+                const response = await fetch('/api/events?limit=20');
+                const data = await response.json();
+                
+                const eventsDiv = document.getElementById('events');
+                eventsDiv.innerHTML = '';
+                
+                if (data.data.events.length === 0) {
+                    eventsDiv.innerHTML = '<p>登録されているイベントはありません。</p>';
+                    return;
+                }
+                
+                data.data.events.forEach(event => {
+                    const eventDiv = document.createElement('div');
+                    eventDiv.className = 'event-item';
+                    eventDiv.innerHTML = `
+                        <h3>${event.title}</h3>
+                        <div class="event-meta">
+                            📅 ${event.date} ${event.time}<br>
+                            📍 ${event.location}<br>
+                            🏷️ ${event.category.join(', ')}
+                        </div>
+                        <button class="delete-btn" onclick="deleteEvent('${event.id}')">削除</button>
+                    `;
+                    eventsDiv.appendChild(eventDiv);
+                });
+            } catch (error) {
+                console.error('イベント読み込みエラー:', error);
+            }
+        }
+        
+        // イベント削除
+        async function deleteEvent(id) {
+            if (!confirm('このイベントを削除しますか？')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/admin/events/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    showMessage('イベントを削除しました', 'success');
+                    loadEvents();
+                } else {
+                    throw new Error('削除に失敗しました');
+                }
+            } catch (error) {
+                showMessage('エラー: ' + error.message, 'error');
+            }
+        }
+        
+        // 初期読み込み
+        loadEvents();
+    </script>
+</body>
+</html>

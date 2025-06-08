@@ -109,9 +109,12 @@ class ShinagawaKankoScraper {
       const $ = cheerio.load(response.data);
       
       // タイトルを取得
-      const title = $('h1').first().text().trim() || 
+      let title = $('h1').first().text().trim() || 
                    $('.entry-title').text().trim() ||
                    $('.article-title').text().trim();
+      
+      // 【終了】タグを除去
+      title = title.replace(/【終了】/g, '').trim();
       
       // イベント情報テーブルまたはリストから情報を抽出
       let date = '';
@@ -258,7 +261,13 @@ class ShinagawaKankoScraper {
       '小山6丁目',
       '小山六丁目',
       '小山7丁目',
-      '小山七丁目'
+      '小山七丁目',
+      'にこま',
+      'にこまる',
+      '西小山駅前広場',
+      '西小山駅前',
+      '西小山飲食',
+      'ニシコヤマルシェ'
     ];
     
     // 品川区その他のキーワード（より具体的に）

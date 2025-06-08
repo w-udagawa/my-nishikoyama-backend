@@ -79,7 +79,8 @@ app.get('/api/events', async (req, res) => {
 
     // 現在日時を日本時間で取得
     const now = dayjs().tz('Asia/Tokyo');
-    const fromDate = startDate || now.format('YYYY-MM-DD');
+    // 過去1週間からのイベントも含める
+    const fromDate = startDate || now.subtract(7, 'day').format('YYYY-MM-DD');
     const toDate = endDate || now.add(3, 'month').format('YYYY-MM-DD');
 
     // DynamoDBクエリパラメータ

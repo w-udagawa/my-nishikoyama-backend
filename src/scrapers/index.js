@@ -1,6 +1,7 @@
 // 正常に動作するスクレイパーのみをインポート
 const ShinagawaKankoScraper = require('./ShinagawaKankoScraper');
 const MusashikoyamaPalmScraper = require('./MusashikoyamaPalmScraper');
+const LoveNishikoyamaScraper = require('./LoveNishikoyamaScraper');
 const AWS = require('aws-sdk');
 const dayjs = require('dayjs');
 require('dotenv').config();
@@ -19,7 +20,8 @@ class EventCollector {
   constructor() {
     this.scrapers = [
       new ShinagawaKankoScraper(),    // 品川観光協会
-      new MusashikoyamaPalmScraper()   // 武蔵小山パルム
+      new MusashikoyamaPalmScraper(),  // 武蔵小山パルム
+      new LoveNishikoyamaScraper()     // We Love 西小山
     ];
   }
 
@@ -85,11 +87,17 @@ class EventCollector {
       seenIds.add(event.id);
       
       // タイトル、日付、場所の組み合わせで重複判定
-      const key = `${event.title}-${event.date}-${event.location}`;
+      // タイトルを正規化（スペースや記号の違いを吸収）
+      const normalizedTitle = event.title.replace(/[　・・！？「」]/g, '').trim();
+      const normalizedLocation = event.location.replace(/[　・・]/g, '').trim();
+      const key = `${normalizedTitle}-${event.date}-${normalizedLocation}`;
       
       if (seen.has(key)) {
         // 既存のイベントより情報が充実していれば更新
         const existing = seen.get(key);
+        console.log(`重複イベント検出: ${event.title} (${event.source}) - 既存: ${existing.source}`);
+        
+        // 情報の充実度で判定（説明が長いほうを優先）
         if (event.description.length > existing.description.length) {
           seen.set(key, event);
         }
