@@ -18,7 +18,9 @@
     "dotenv": "^16.3.1",
     "aws-sdk": "^2.1400.0",
     "dayjs": "^1.11.10",
-    "puppeteer": "^21.5.0"
+    "puppeteer": "^21.5.0",
+    "web-push": "^3.6.6",
+    "cors": "^2.8.5"
   },
   "devDependencies": {
     "nodemon": "^3.0.1",
