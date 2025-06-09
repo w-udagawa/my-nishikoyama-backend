@@ -4,6 +4,7 @@ const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const timezone = require('dayjs/plugin/timezone');
 const Event = require('./models/Event');
+const webPushService = require('./services/webPushService');
 require('dotenv').config();
 
 dayjs.extend(utc);
@@ -54,6 +55,9 @@ const dynamoDB = new AWS.DynamoDB();
 const docClient = new AWS.DynamoDB.DocumentClient();
 const tableName = process.env.DYNAMODB_TABLE_NAME;
 
+// Web Push初期化
+webPushService.initializeWebPush();
+
 // ヘルスチェックエンドポイント
 app.get('/health', (req, res) => {
   res.json({ 
@@ -61,6 +65,137 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     service: 'my-nishikoyama-backend'
   });
+});
+
+// VAPID公開鍵取得エンドポイント
+app.get('/api/push/vapid-public-key', (req, res) => {
+  res.json({
+    success: true,
+    data: {
+      publicKey: process.env.VAPID_PUBLIC_KEY
+    }
+  });
+});
+
+// Push通知購読エンドポイント
+app.post('/api/push/subscribe', async (req, res) => {
+  try {
+    const { subscription, preferences } = req.body;
+
+    if (!subscription || !subscription.endpoint) {
+      return res.status(400).json({
+        success: false,
+        error: '購読情報が不正です'
+      });
+    }
+
+    const result = await webPushService.saveSubscription(subscription, preferences);
+    
+    res.json({
+      success: true,
+      data: result
+    });
+
+  } catch (error) {
+    console.error('購読エラー:', error);
+    res.status(500).json({
+      success: false,
+      error: '購読の登録に失敗しました'
+    });
+  }
+});
+
+// Push通知購読解除エンドポイント
+app.post('/api/push/unsubscribe', async (req, res) => {
+  try {
+    const { endpoint } = req.body;
+
+    if (!endpoint) {
+      return res.status(400).json({
+        success: false,
+        error: 'エンドポイントが指定されていません'
+      });
+    }
+
+    await webPushService.removeSubscription(endpoint);
+    
+    res.json({
+      success: true,
+      message: '購読を解除しました'
+    });
+
+  } catch (error) {
+    console.error('購読解除エラー:', error);
+    res.status(500).json({
+      success: false,
+      error: '購読の解除に失敗しました'
+    });
+  }
+});
+
+// Push通知設定更新エンドポイント
+app.put('/api/push/preferences', async (req, res) => {
+  try {
+    const { endpoint, preferences } = req.body;
+
+    if (!endpoint || !preferences) {
+      return res.status(400).json({
+        success: false,
+        error: 'エンドポイントまたは設定が指定されていません'
+      });
+    }
+
+    await webPushService.updateSubscriptionPreferences(endpoint, preferences);
+    
+    res.json({
+      success: true,
+      message: '通知設定を更新しました'
+    });
+
+  } catch (error) {
+    console.error('設定更新エラー:', error);
+    res.status(500).json({
+      success: false,
+      error: '設定の更新に失敗しました'
+    });
+  }
+});
+
+// テスト通知送信エンドポイント（開発用）
+app.post('/api/push/test', async (req, res) => {
+  try {
+    const { endpoint } = req.body;
+
+    if (!endpoint) {
+      return res.status(400).json({
+        success: false,
+        error: 'エンドポイントが指定されていません'
+      });
+    }
+
+    const testEvent = {
+      id: 'test-' + Date.now(),
+      title: 'テスト通知',
+      date: dayjs().format('YYYY-MM-DD'),
+      time: dayjs().format('HH:mm'),
+      location: 'テスト会場',
+      area: 'nishikoyama'
+    };
+
+    const result = await webPushService.notifyNewEvent(testEvent);
+    
+    res.json({
+      success: true,
+      data: result
+    });
+
+  } catch (error) {
+    console.error('テスト通知エラー:', error);
+    res.status(500).json({
+      success: false,
+      error: 'テスト通知の送信に失敗しました'
+    });
+  }
 });
 
 // イベント一覧取得エンドポイント
