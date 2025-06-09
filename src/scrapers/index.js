@@ -2,6 +2,7 @@
 const ShinagawaKankoScraper = require('./ShinagawaKankoScraper');
 const MusashikoyamaPalmScraper = require('./MusashikoyamaPalmScraper');
 const LoveNishikoyamaScraper = require('./LoveNishikoyamaScraper');
+const LineNotifyService = require('../services/lineNotifyService');
 const AWS = require('aws-sdk');
 const dayjs = require('dayjs');
 require('dotenv').config();
@@ -23,6 +24,7 @@ class EventCollector {
       new MusashikoyamaPalmScraper(),  // 武蔵小山パルム
       new LoveNishikoyamaScraper()     // We Love 西小山
     ];
+    this.lineNotify = new LineNotifyService();
   }
 
   async collectAllEvents() {
@@ -57,12 +59,43 @@ class EventCollector {
     });
     console.log(`未来のイベント: ${futureEvents.length}件`);
     
+    // 既存のイベントをチェックして新規イベントのみ通知
+    const newEvents = await this.checkNewEvents(futureEvents);
+    console.log(`新規イベント: ${newEvents.length}件`);
+    
     // DynamoDBに保存
-    await this.saveEvents(futureEvents);
+    await this.saveEvents(futureEvents, newEvents);
     
     console.log('=== イベント収集完了 ===');
     
     return futureEvents;
+  }
+
+  // 新規イベントをチェック
+  async checkNewEvents(events) {
+    const newEvents = [];
+    
+    for (const event of events) {
+      try {
+        // DynamoDBから既存のイベントを確認
+        const params = {
+          TableName: tableName,
+          Key: { id: event.id }
+        };
+        
+        const result = await docClient.get(params).promise();
+        
+        if (!result.Item) {
+          // 新規イベント
+          newEvents.push(event);
+        }
+      } catch (error) {
+        // エラーの場合は新規として扱う
+        newEvents.push(event);
+      }
+    }
+    
+    return newEvents;
   }
 
   // フィルタリング機能（現在は無効化）
@@ -109,7 +142,7 @@ class EventCollector {
     });
   }
 
-  async saveEvents(events) {
+  async saveEvents(events, newEvents) {
     console.log('DynamoDBへの保存開始...');
     
     // 個別に保存
@@ -139,6 +172,12 @@ class EventCollector {
         }).promise();
         savedCount++;
         console.log(`保存: ${event.title} (${event.date})`);
+        
+        // 新規イベントの場合はLINE通知
+        if (newEvents.some(newEvent => newEvent.id === event.id)) {
+          console.log(`🔔 新規イベント通知: ${event.title}`);
+          await this.lineNotify.notifyNewEvent(event);
+        }
       } catch (error) {
         console.error('保存エラー:', event.title, error.message);
       }
