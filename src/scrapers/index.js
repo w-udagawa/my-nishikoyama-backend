@@ -2,7 +2,7 @@
 const ShinagawaKankoScraper = require('./ShinagawaKankoScraper');
 const MusashikoyamaPalmScraper = require('./MusashikoyamaPalmScraper');
 const LoveNishikoyamaScraper = require('./LoveNishikoyamaScraper');
-const LineNotifyService = require('../services/lineNotifyService');
+const PushNotificationService = require('../services/PushNotificationService');
 const AWS = require('aws-sdk');
 const dayjs = require('dayjs');
 require('dotenv').config();
@@ -24,7 +24,7 @@ class EventCollector {
       new MusashikoyamaPalmScraper(),  // 武蔵小山パルム
       new LoveNishikoyamaScraper()     // We Love 西小山
     ];
-    this.lineNotify = new LineNotifyService();
+    this.pushService = new PushNotificationService();
   }
 
   async collectAllEvents() {
@@ -59,43 +59,71 @@ class EventCollector {
     });
     console.log(`未来のイベント: ${futureEvents.length}件`);
     
-    // 既存のイベントをチェックして新規イベントのみ通知
-    const newEvents = await this.checkNewEvents(futureEvents);
+    // 既存のイベントIDを取得
+    const existingEventIds = await this.getExistingEventIds();
+    
+    // 新規イベントを検出
+    const newEvents = futureEvents.filter(event => !existingEventIds.has(event.id));
     console.log(`新規イベント: ${newEvents.length}件`);
     
     // DynamoDBに保存
-    await this.saveEvents(futureEvents, newEvents);
+    await this.saveEvents(futureEvents);
+    
+    // 新規イベントがある場合は通知を送信
+    if (newEvents.length > 0) {
+      console.log('=== 新規イベント通知送信 ===');
+      for (const event of newEvents) {
+        try {
+          const result = await this.pushService.sendNewEventNotification(event);
+          console.log(`通知送信: ${event.title} - 成功${result.successful}件, 失敗${result.failed}件`);
+        } catch (error) {
+          console.error(`通知送信エラー: ${event.title}`, error);
+        }
+      }
+    }
     
     console.log('=== イベント収集完了 ===');
     
     return futureEvents;
   }
 
-  // 新規イベントをチェック
-  async checkNewEvents(events) {
-    const newEvents = [];
-    
-    for (const event of events) {
-      try {
-        // DynamoDBから既存のイベントを確認
-        const params = {
-          TableName: tableName,
-          Key: { id: event.id }
-        };
-        
-        const result = await docClient.get(params).promise();
-        
-        if (!result.Item) {
-          // 新規イベント
-          newEvents.push(event);
+  // 既存のイベントIDを取得
+  async getExistingEventIds() {
+    try {
+      const params = {
+        TableName: tableName,
+        ProjectionExpression: 'id',
+        FilterExpression: 'isDemo = :isDemo',
+        ExpressionAttributeValues: {
+          ':isDemo': false
         }
-      } catch (error) {
-        // エラーの場合は新規として扱う
-        newEvents.push(event);
+      };
+      
+      const result = await docClient.scan(params).promise();
+      const ids = new Set();
+      
+      if (result.Items) {
+        result.Items.forEach(item => ids.add(item.id));
       }
+      
+      // ページネーション対応
+      let lastEvaluatedKey = result.LastEvaluatedKey;
+      while (lastEvaluatedKey) {
+        params.ExclusiveStartKey = lastEvaluatedKey;
+        const nextResult = await docClient.scan(params).promise();
+        
+        if (nextResult.Items) {
+          nextResult.Items.forEach(item => ids.add(item.id));
+        }
+        
+        lastEvaluatedKey = nextResult.LastEvaluatedKey;
+      }
+      
+      return ids;
+    } catch (error) {
+      console.error('既存イベントID取得エラー:', error);
+      return new Set();
     }
-    
-    return newEvents;
   }
 
   // フィルタリング機能（現在は無効化）
@@ -142,7 +170,7 @@ class EventCollector {
     });
   }
 
-  async saveEvents(events, newEvents) {
+  async saveEvents(events) {
     console.log('DynamoDBへの保存開始...');
     
     // 個別に保存
@@ -172,12 +200,6 @@ class EventCollector {
         }).promise();
         savedCount++;
         console.log(`保存: ${event.title} (${event.date})`);
-        
-        // 新規イベントの場合はLINE通知
-        if (newEvents.some(newEvent => newEvent.id === event.id)) {
-          console.log(`🔔 新規イベント通知: ${event.title}`);
-          await this.lineNotify.notifyNewEvent(event);
-        }
       } catch (error) {
         console.error('保存エラー:', event.title, error.message);
       }
@@ -186,6 +208,35 @@ class EventCollector {
     console.log(`DynamoDB保存完了: ${savedCount}/${events.length}件`);
   }
 
+  // 日次サマリー送信（cronジョブから呼び出される）
+  async sendDailySummary() {
+    try {
+      // 今日のイベントを取得
+      const today = dayjs().format('YYYY-MM-DD');
+      const params = {
+        TableName: tableName,
+        FilterExpression: '#date = :today AND isDemo = :isDemo',
+        ExpressionAttributeNames: {
+          '#date': 'date'
+        },
+        ExpressionAttributeValues: {
+          ':today': today,
+          ':isDemo': false
+        }
+      };
+      
+      const result = await docClient.scan(params).promise();
+      const todayEvents = result.Items || [];
+      
+      // 日次サマリー通知を送信
+      if (todayEvents.length > 0) {
+        const summary = await this.pushService.sendDailySummary(todayEvents);
+        console.log(`日次サマリー送信: 成功${summary.successful}件, 失敗${summary.failed}件`);
+      }
+    } catch (error) {
+      console.error('日次サマリー送信エラー:', error);
+    }
+  }
 
   // 手動実行用
   async runOnce() {
